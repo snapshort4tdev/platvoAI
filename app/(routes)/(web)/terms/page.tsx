@@ -43,7 +43,7 @@ export default function TermsOfService() {
                             <p>By accessing or using our services, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access the service.</p>
 
                             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mt-8 mb-4">2. Description of Service</h2>
-                            <p>We provide a platform for accessing various AI models (text, images, tools) through a single unified interface. The services are provided "as is" and "as available".</p>
+                            <p>We provide a platform for accessing various AI models (text, images, tools) through a single unified interface. The services are provided &quot;as is&quot; and &quot;as available&quot;.</p>
 
                             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mt-8 mb-4">3. User Conduct</h2>
                             <p>You agree not to use the service for any unlawful purpose or in any way that interrupts, damages, or impairs the service. You take full responsibility for prompts provided to the AI and the generated output.</p>
