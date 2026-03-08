@@ -1,0 +1,388 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { UseChatHelpers } from "@ai-sdk/react";
+import { ChatStatus, UIMessage } from "ai";
+import React, {
+  Dispatch,
+  FC,
+  SetStateAction,
+  useCallback,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
+import {
+  PromptInput,
+  PromptInputButton,
+  PromptInputModelSelect,
+  PromptInputModelSelectContent,
+  PromptInputModelSelectItem,
+  PromptInputModelSelectTrigger,
+  PromptInputModelSelectValue,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputToolbar,
+  PromptInputTools,
+} from "../ai-elements/prompt-input";
+import { cn } from "@/lib/utils";
+import { MODEL_OPTIONS, chatModels } from "@/lib/ai/models";
+import { ModelIcon } from "./model-icon";
+import { useLocalChat } from "@/hooks/use-localchat";
+import { ArrowUpIcon, XIcon, Search, LucideFilePlus, ImageIcon } from "lucide-react";
+import { AVAILABLE_TOOLS, AvailableToolType, SearchMode } from "@/lib/ai/tools/constant";
+import { Button } from "../ui/button";
+import { RiSquareFill } from "@remixicon/react";
+import { toast } from "sonner";
+import useViewState from "@/hooks/use-view-state";
+import { getTextDirection } from "@/lib/utils/language-detection";
+import { useTranslation } from "@/lib/i18n";
+
+type Props = {
+  chatId: string;
+  input: string;
+  className?: string;
+  hasReachedLimit?: boolean;
+
+  setInput: Dispatch<SetStateAction<string>>;
+  status: ChatStatus;
+  messages: Array<UIMessage>;
+  sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+  initialModelId: string;
+  disabled?: boolean;
+  stop: () => void;
+};
+
+const ChatInput: FC<Props> = ({
+  chatId,
+  input,
+  initialModelId,
+  status,
+  className,
+  setInput,
+  sendMessage,
+  disabled,
+  hasReachedLimit,
+  stop,
+}) => {
+  const { localModelId, setLocalModelId } = useLocalChat();
+  const { setIsChatView } = useViewState();
+  const [selectedTool, setSelectedTool] = useState<AvailableToolType | null>(
+    null
+  );
+  const [searchMode, setSearchMode] = useState<SearchMode>("none");
+
+  const selectedModelId = localModelId || initialModelId;
+  const t = useTranslation();
+
+  // Detect text direction based on input
+  const inputDirection = getTextDirection(input);
+
+  const handleInput = (e: any) => {
+    const newValue = e.target.value;
+    setInput(newValue);
+  };
+
+  const handleSelect = (value: string) => {
+    setLocalModelId(value);
+  };
+
+
+  const removeTool = () => {
+    setSelectedTool(null);
+  };
+
+  const handleStop = () => {
+    stop();
+    toast.info(t("messages.generationStopped"));
+  };
+
+  const handleFormSubmit = useCallback(({ text = "" }: { text?: string }) => {
+    // Generation limit check removed - unlimited for now
+    if (disabled) return;
+    if (!text?.trim()) {
+      toast.error(t("messages.pleaseTypeMessage"));
+      return;
+    }
+
+    if (!chatId) {
+      toast.error(t("messages.chatIdNotFound"));
+      return;
+    }
+
+    window.history.replaceState({}, "", `/chat/${chatId}`);
+    setIsChatView(true);
+
+    if (status === "streaming") {
+      toast.error(t("messages.waitForResponse"));
+      return;
+    }
+
+    // Build message parts - only text
+    const parts: any[] = [];
+    
+    // Add text part
+    if (text?.trim()) {
+      parts.push({
+        type: "text",
+        text: text.trim(),
+      });
+    }
+
+    // Determine selected tool name based on search mode
+    let toolName: string | null = selectedTool?.name || null;
+    if (searchMode === "normal" && !toolName) {
+      toolName = t("chat.webSearch");
+    }
+
+    // Send message
+    sendMessage(
+      {
+        role: "user",
+        parts,
+      },
+      {
+        body: {
+          selectedModelId: selectedModelId,
+          selectedToolName: toolName,
+          searchMode: searchMode,
+        },
+      }
+    );
+    setInput("");
+  }, [
+    chatId,
+    status,
+    disabled,
+    selectedTool,
+    selectedModelId,
+    searchMode,
+    setInput,
+    sendMessage,
+    setIsChatView,
+    t,
+  ]);
+
+
+  const isGenerating = status === "streaming" || status === "submitted";
+  const placeholder = t("chat.placeholder");
+  return (
+    <PromptInput
+      className={cn(
+        `relative bg-white dark:bg-[#242628] ring-border shadow-md dark:shadow-black/5 !rounded-2xl sm:!rounded-3xl !divide-y-0 pb-1.5 sm:pb-2 transition-colors`,
+        className && className
+      )}
+      onSubmit={handleFormSubmit}
+    >
+      <div className="relative">
+        {(selectedTool || searchMode !== "none") && (
+          <div className="flex items-center gap-1 pt-1.5 pl-2 sm:pl-3 flex-wrap">
+            {selectedTool && (
+              <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs font-medium border">
+                <selectedTool.icon size={11} className="sm:w-3 sm:h-3" />
+                <span className="hidden sm:inline">{selectedTool.name}</span>
+                <button
+                  className="ml-0.5 sm:ml-1 hover:bg-primary/20 rounded-sm p-0.5 transition-colors"
+                  onClick={removeTool}
+                >
+                  <XIcon size={10} className="sm:w-2.5 sm:h-2.5" />
+                </button>
+              </div>
+            )}
+            {searchMode === "normal" && (
+              <div className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-500 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs font-medium border">
+                <Search size={11} className="sm:w-3 sm:h-3" />
+                <span className="hidden sm:inline">{t("chat.webSearch")}</span>
+                <button
+                  className="ml-0.5 sm:ml-1 hover:bg-blue-500/20 rounded-sm p-0.5 transition-colors"
+                  onClick={() => setSearchMode("none")}
+                >
+                  <XIcon size={10} className="sm:w-2.5 sm:h-2.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <PromptInputTextarea
+          placeholder={placeholder}
+          rows={2}
+          autoFocus
+          value={input}
+          dir={inputDirection}
+          className={cn(
+            "min-h-14 sm:min-h-16 pt-2 px-2 sm:px-3 overflow-hidden !text-sm sm:!text-base",
+            inputDirection === "rtl" ? "text-right" : "text-left"
+          )}
+          onChange={handleInput}
+        />
+      </div>
+
+      <PromptInputToolbar>
+        <PromptInputTools className="flex-wrap gap-1 sm:gap-1.5">
+          <ModelSelector
+            selectedModelId={selectedModelId}
+            onSelect={handleSelect}
+          />
+
+          {/* Web Search Button */}
+          <PromptInputButton
+            className={cn(
+              "text-muted-foreground flex items-center gap-1 sm:gap-1.5",
+              searchMode === "normal" && "bg-blue-500/10 text-blue-500 border-blue-500/20"
+            )}
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setSearchMode(searchMode === "normal" ? "none" : "normal");
+              if (selectedTool?.toolName === "createNote") {
+                setSelectedTool(null);
+              }
+            }}
+            type="button"
+            title={t("chat.webSearch")}
+          >
+            <Search size={14} className="sm:w-4 sm:h-4" />
+            <span className="text-xs hidden sm:inline">{t("chat.webSearch")}</span>
+          </PromptInputButton>
+
+          {/* Create Note Button */}
+          <PromptInputButton
+            className={cn(
+              "text-muted-foreground flex items-center gap-1 sm:gap-1.5",
+              selectedTool?.toolName === "createNote" && "bg-primary/10 text-primary border-primary/20"
+            )}
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const createNoteTool = AVAILABLE_TOOLS.find(tool => tool.toolName === "createNote");
+              if (createNoteTool) {
+                if (selectedTool?.toolName === "createNote") {
+                  setSelectedTool(null);
+                } else {
+                  setSelectedTool(createNoteTool);
+                  setSearchMode("none");
+                }
+              }
+            }}
+            type="button"
+            title={t("chat.createNote")}
+          >
+            <LucideFilePlus size={14} className="sm:w-4 sm:h-4" />
+            <span className="text-xs hidden sm:inline">{t("chat.createNote")}</span>
+          </PromptInputButton>
+
+          {/* Generate Image Button */}
+          <PromptInputButton
+            className={cn(
+              "text-muted-foreground flex items-center gap-1 sm:gap-1.5",
+              selectedTool?.toolName === "generateImage" && "bg-primary/10 text-primary border-primary/20"
+            )}
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const generateImageTool = AVAILABLE_TOOLS.find(tool => tool.toolName === "generateImage");
+              if (generateImageTool) {
+                if (selectedTool?.toolName === "generateImage") {
+                  setSelectedTool(null);
+                } else {
+                  setSelectedTool(generateImageTool);
+                  setSearchMode("none");
+                }
+              }
+            }}
+            type="button"
+            title={t("chat.generateImage")}
+          >
+            <ImageIcon size={14} className="sm:w-4 sm:h-4" />
+            <span className="text-xs hidden sm:inline">{t("chat.generateImage")}</span>
+          </PromptInputButton>
+        </PromptInputTools>
+
+        {isGenerating ? (
+          <StopButton stop={handleStop} />
+        ) : (
+          <PromptInputSubmit
+            status={status}
+            disabled={!input.trim() || disabled}
+            className="absolute right-1.5 sm:right-2 rounded-full bottom-1 sm:bottom-1.5 !text-white"
+          >
+            <ArrowUpIcon size={20} className="sm:w-6 sm:h-6" />
+          </PromptInputSubmit>
+        )}
+      </PromptInputToolbar>
+    </PromptInput>
+  );
+};
+
+function ModelSelector({
+  selectedModelId,
+  onSelect,
+}: {
+  selectedModelId: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <>
+      <PromptInputModelSelect
+        value={selectedModelId}
+        onValueChange={(value) => {
+          onSelect(value);
+        }}
+      >
+        <PromptInputModelSelectTrigger className="bg-white dark:bg-inherit border text-xs sm:text-sm">
+          <PromptInputModelSelectValue>
+            {(() => {
+              const selectedModel = chatModels.find((m) => m.id === selectedModelId);
+              const selectedOption = MODEL_OPTIONS.find((m) => m.value === selectedModelId);
+              if (selectedModel && selectedOption) {
+                return (
+                  <span className="flex items-center gap-1.5 sm:gap-2">
+                    <ModelIcon
+                      iconUrl={selectedModel.iconUrl}
+                      size={14}
+                      className="sm:w-4 sm:h-4"
+                      alt={`${selectedOption.label} icon`}
+                    />
+                    <span className="truncate max-w-[80px] sm:max-w-none">{selectedOption.label}</span>
+                  </span>
+                );
+              }
+              return <span className="truncate max-w-[80px] sm:max-w-none">{selectedOption?.label || ""}</span>;
+            })()}
+          </PromptInputModelSelectValue>
+        </PromptInputModelSelectTrigger>
+        <PromptInputModelSelectContent>
+          {MODEL_OPTIONS.map((model) => {
+            const modelData = chatModels.find((m) => m.id === model.value);
+            return (
+              <PromptInputModelSelectItem
+                key={model.value}
+                value={model.value}
+                className="flex items-center gap-2"
+              >
+                <ModelIcon
+                  iconUrl={modelData?.iconUrl}
+                  size={16}
+                  alt={`${model.label} icon`}
+                />
+                {model.label}
+              </PromptInputModelSelectItem>
+            );
+          })}
+        </PromptInputModelSelectContent>
+      </PromptInputModelSelect>
+    </>
+  );
+}
+
+function StopButton({ stop }: { stop: () => void }) {
+  return (
+    <Button
+      size="icon"
+      className="!bg-muted rounded-full dark:!bg-black border cursor-pointer"
+      onClick={stop}
+    >
+      <RiSquareFill size={14} className="text-black dark:text-white" />
+    </Button>
+  );
+}
+export default ChatInput;

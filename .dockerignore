@@ -1,0 +1,42 @@
+# deps
+node_modules
+npm-debug.log*
+
+# next
+.next
+out
+
+# git
+.git
+.gitignore
+
+# ide
+.vscode
+.cursor
+.idea
+
+# env
+.env
+.env.*
+
+# os
+.DS_Store
+Thumbs.db
+
+# docs
+*.md
+!README.md
+
+# docker
+docker-compose*.yml
+Dockerfile
+
+# testing
+coverage
+testsprite_tests
+
+# misc
+*.py
+*.pem
+.vercel
+.gemini
