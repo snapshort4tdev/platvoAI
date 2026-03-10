@@ -56,20 +56,33 @@ export async function fetchOpenRouterModels(): Promise<ChatModel[]> {
 
     // Define the specific models to include (matching the UI images)
     // Map of model identifier patterns to display names
+    // ORDER: ChatGPT first, then Gemini, then Claude, then the rest
     const allowedModels: Array<{ pattern: string; displayName: string; provider: string }> = [
-      { pattern: "deepseek-chat", displayName: "DeepSeek Chat", provider: "deepseek" },
-      { pattern: "deepseek-r1", displayName: "DeepSeek R1", provider: "deepseek" },
-      { pattern: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", provider: "anthropic" },
-      { pattern: "gemini-3.1-flash-lite", displayName: "Gemini 3.1 Flash Lite", provider: "google" },
-      { pattern: "llama-4-scout", displayName: "Llama 4 Scout", provider: "meta" },
-      { pattern: "llama-4-maverick", displayName: "Llama 4 Maverick", provider: "meta" },
-      { pattern: "mistral-large", displayName: "Mistral Large", provider: "mistralai" },
-      { pattern: "mistral-small-3.2", displayName: "Mistral Small 3.2", provider: "mistralai" },
-      { pattern: "qwen3-235b", displayName: "Qwen 3 235B", provider: "qwen" },
-      { pattern: "qwen3-max-thinking", displayName: "Qwen 3 Max Thinking", provider: "qwen" },
+      // --- ChatGPT (top) ---
       { pattern: "gpt-4o", displayName: "GPT-4o", provider: "openai" },
       { pattern: "gpt-4o-mini", displayName: "GPT-4o Mini", provider: "openai" },
+      // --- Gemini (right under ChatGPT) ---
+      { pattern: "gemini-3.1-pro-preview", displayName: "Gemini 3.1 Pro", provider: "google" },
+      { pattern: "gemini-3.1-flash-lite", displayName: "Gemini 3.1 Flash Lite", provider: "google" },
+      { pattern: "gemini-2.5-pro", displayName: "Gemini 2.5 Pro", provider: "google" },
+      { pattern: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash", provider: "google" },
+      // --- Claude ---
+      { pattern: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", provider: "anthropic" },
+      // --- DeepSeek ---
+      { pattern: "deepseek-chat", displayName: "DeepSeek Chat", provider: "deepseek" },
+      { pattern: "deepseek-r1", displayName: "DeepSeek R1", provider: "deepseek" },
+      // --- Grok ---
       { pattern: "grok-4", displayName: "Grok 4", provider: "x-ai" },
+      // --- Llama ---
+      { pattern: "llama-4-scout", displayName: "Llama 4 Scout", provider: "meta" },
+      { pattern: "llama-4-maverick", displayName: "Llama 4 Maverick", provider: "meta" },
+      // --- Mistral ---
+      { pattern: "mistral-large", displayName: "Mistral Large", provider: "mistralai" },
+      { pattern: "mistral-small-3.2", displayName: "Mistral Small 3.2", provider: "mistralai" },
+      // --- Qwen ---
+      { pattern: "qwen3-235b", displayName: "Qwen 3 235B", provider: "qwen" },
+      { pattern: "qwen3-max-thinking", displayName: "Qwen 3 Max Thinking", provider: "qwen" },
+      // --- Perplexity ---
       { pattern: "sonar-pro-search", displayName: "Perplexity Sonar Pro Search", provider: "perplexity" },
     ];
 
@@ -77,9 +90,9 @@ export async function fetchOpenRouterModels(): Promise<ChatModel[]> {
     const models: ChatModel[] = [];
 
     // Patterns to exclude (audio, specialized variants, etc.)
+    // Note: "preview" is NOT excluded because Gemini models use preview suffix
     const excludePatterns = [
       "audio",
-      "preview",
       "beta",
       "experimental",
       "vision-preview",
@@ -115,6 +128,32 @@ export async function fetchOpenRouterModels(): Promise<ChatModel[]> {
             (modelIdLower.includes("gpt-4o-mini") &&
               !modelIdLower.includes("gpt-4o-mini-audio") &&
               /\d{4}-\d{2}-\d{2}/.test(modelIdLower)));
+        }
+
+        if (patternLower === "gemini-3.1-pro-preview") {
+          return modelIdLower === "google/gemini-3.1-pro-preview";
+        }
+
+        if (patternLower === "gemini-3.1-flash-lite") {
+          return modelIdLower === "google/gemini-3.1-flash-lite-preview" ||
+            modelIdLower.includes("gemini-3.1-flash-lite");
+        }
+
+        if (patternLower === "gemini-2.5-pro") {
+          // Match gemini-2.5-pro exactly, not gemini-2.5-pro-exp or preview
+          return modelIdLower === "google/gemini-2.5-pro" ||
+            (modelIdLower.includes("gemini-2.5-pro") &&
+              !modelIdLower.includes("exp") &&
+              !modelIdLower.includes("preview"));
+        }
+
+        if (patternLower === "gemini-2.5-flash") {
+          // Match gemini-2.5-flash exactly, not lite/exp variants
+          return modelIdLower === "google/gemini-2.5-flash" ||
+            (modelIdLower.includes("gemini-2.5-flash") &&
+              !modelIdLower.includes("lite") &&
+              !modelIdLower.includes("exp") &&
+              !modelIdLower.includes("preview"));
         }
 
         if (patternLower === "grok-4") {

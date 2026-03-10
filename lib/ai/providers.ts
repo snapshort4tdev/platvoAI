@@ -144,9 +144,13 @@ export function ensureModelAvailable(modelId: string) {
 }
 
 // Vision models supported through OpenRouter:
-// - anthropic/claude-sonnet-4.6 (supports vision)
 // - openai/gpt-4o (supports vision)
+// - openai/gpt-4o-mini (supports vision)
+// - google/gemini-3.1-pro-preview (supports vision)
 // - google/gemini-3.1-flash-lite-preview (supports vision)
+// - google/gemini-2.5-pro (supports vision)
+// - google/gemini-2.5-flash (supports vision)
+// - anthropic/claude-sonnet-4.6 (supports vision)
 // OpenRouter automatically handles vision when file parts are included in messages
 
 // Keep isProduction export for backward compatibility (not used for routing anymore)

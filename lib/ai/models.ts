@@ -8,6 +8,42 @@ export interface ChatModel {
 // Fallback models if generated models fail to load
 const fallbackModels: ChatModel[] = [
   {
+    id: "openai/gpt-4o",
+    name: "GPT-4o",
+    description: "OpenAI's latest multimodal model for dialogue and reasoning",
+    iconUrl: "/1702059841openai-icon-png.png",
+  },
+  {
+    id: "openai/gpt-4o-mini",
+    name: "GPT-4o Mini",
+    description: "OpenAI's most affordable small model with SOTA intelligence",
+    iconUrl: "/1702059841openai-icon-png.png",
+  },
+  {
+    id: "google/gemini-3.1-pro-preview",
+    name: "Gemini 3.1 Pro",
+    description: "Google's frontier reasoning model with enhanced software engineering performance and 1M context window",
+    iconUrl: "https://cdn.simpleicons.org/google/4285F4",
+  },
+  {
+    id: "google/gemini-3.1-flash-lite-preview",
+    name: "Gemini 3.1 Flash Lite",
+    description: "Google's fast, cost-efficient model with 1M context window",
+    iconUrl: "https://cdn.simpleicons.org/google/4285F4",
+  },
+  {
+    id: "google/gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    description: "Google's state-of-the-art AI model for advanced reasoning, coding, and scientific tasks",
+    iconUrl: "https://cdn.simpleicons.org/google/4285F4",
+  },
+  {
+    id: "google/gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    description: "Google's workhorse model for fast reasoning, coding, and math tasks",
+    iconUrl: "https://cdn.simpleicons.org/google/4285F4",
+  },
+  {
     id: "anthropic/claude-sonnet-4.6",
     name: "Claude Sonnet 4.6",
     description: "Anthropic's latest Sonnet model with adaptive thinking and improved reasoning",
@@ -19,18 +55,6 @@ const fallbackModels: ChatModel[] = [
     description:
       "xAI's powerful reasoning model with tool calling and structured outputs",
     iconUrl: "https://cdn.simpleicons.org/x/000000",
-  },
-  {
-    id: "openai/gpt-4o",
-    name: "GPT-4o",
-    description: "OpenAI's latest multimodal model for dialogue and reasoning",
-    iconUrl: "/1702059841openai-icon-png.png",
-  },
-  {
-    id: "google/gemini-3.1-flash-lite-preview",
-    name: "Gemini 3.1 Flash Lite",
-    description: "Google's fast, cost-efficient model with 1M context window",
-    iconUrl: "https://cdn.simpleicons.org/google/4285F4",
   },
   {
     id: "perplexity/sonar-pro-search",
@@ -85,8 +109,14 @@ export function getChatModels(): ChatModel[] {
   const hasGpt54 = baseModels.some(m => m.id === "openai/gpt-5.4");
 
   // Add GPT-5.4 if it's not already in the list
+  // Insert it after GPT-4o Mini to keep all ChatGPT models grouped at the top
   if (!hasGpt54) {
-    return [...baseModels, gpt54Model];
+    const lastOpenAiIndex = baseModels.reduce((lastIdx, m, idx) =>
+      m.id.startsWith("openai/") ? idx : lastIdx, -1);
+    const insertAt = lastOpenAiIndex + 1;
+    const result = [...baseModels];
+    result.splice(insertAt, 0, gpt54Model);
+    return result;
   }
 
   return baseModels;
