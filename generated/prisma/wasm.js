@@ -292,7 +292,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\anasa\\Desktop\\platvo-ai-\\generated\\prisma",
+      "value": "C:\\Users\\anasa\\Desktop\\kosomelsisi\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -310,7 +310,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\anasa\\Desktop\\platvo-ai-\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\anasa\\Desktop\\kosomelsisi\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

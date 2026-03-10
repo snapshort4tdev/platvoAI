@@ -27,7 +27,7 @@ function Navbar() {
         <ul className="hidden items-center gap-6 text-sm xl:text-base font-normal md:flex absolute left-1/2 transform -translate-x-1/2">
           <li>
             <Link
-              href="#pricing"
+              href="/pricing"
               className="transition-colors hover:text-foreground"
             >
               {t("landing.pricing")}

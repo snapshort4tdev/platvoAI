@@ -43,6 +43,7 @@ function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
             <div className="flex gap-4 text-sm text-muted-foreground">
               <Link href="/about" className="hover:text-foreground transition-colors">About Us</Link>
+              <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
             </div>

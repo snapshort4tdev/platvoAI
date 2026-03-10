@@ -68,7 +68,7 @@ const ModelsPricingSection = () => {
                 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/50
                 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-500/60"
             >
-              <Link href="/auth/sign-in">
+              <Link href="/pricing">
                 {t("landing.getStartedNow")}
                 <RiExternalLinkLine className="h-5 w-5 ml-2" />
               </Link>

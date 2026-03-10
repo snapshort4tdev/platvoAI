@@ -19,7 +19,7 @@ const ProblemSection = () => {
   ];
 
   return (
-    <section className="relative mt-20 mb-16">
+    <section id="features" className="relative mt-20 mb-16 scroll-mt-24">
       <div className="mx-auto max-w-4xl px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 dark:text-white mb-6">
