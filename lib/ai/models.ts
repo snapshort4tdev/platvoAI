@@ -57,6 +57,12 @@ const fallbackModels: ChatModel[] = [
     iconUrl: "https://cdn.simpleicons.org/x/000000",
   },
   {
+    id: "moonshotai/kimi-k2.5",
+    name: "Kimi K2.5",
+    description: "Moonshot AI's native multimodal model with state-of-the-art visual coding and agent swarm capabilities",
+    iconUrl: "https://cdn.simpleicons.org/moonrepo/000000",
+  },
+  {
     id: "perplexity/sonar-pro-search",
     name: "Perplexity Sonar Pro Search",
     description: "Perplexity's advanced search model with real-time web search capabilities",

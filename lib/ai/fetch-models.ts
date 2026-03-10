@@ -82,6 +82,8 @@ export async function fetchOpenRouterModels(): Promise<ChatModel[]> {
       // --- Qwen ---
       { pattern: "qwen3-235b", displayName: "Qwen 3 235B", provider: "qwen" },
       { pattern: "qwen3-max-thinking", displayName: "Qwen 3 Max Thinking", provider: "qwen" },
+      // --- Kimi ---
+      { pattern: "kimi-k2.5", displayName: "Kimi K2.5", provider: "moonshotai" },
       // --- Perplexity ---
       { pattern: "sonar-pro-search", displayName: "Perplexity Sonar Pro Search", provider: "perplexity" },
     ];

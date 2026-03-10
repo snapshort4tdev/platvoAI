@@ -17,6 +17,7 @@ export const providerIcons: Record<string, string> = {
   "perplexity-ai": "/perplexity-color.png",
   perplexity: "/perplexity-color.png",
   "01-ai": "https://cdn.simpleicons.org/01ai/000000",
+  moonshotai: "https://cdn.simpleicons.org/moonrepo/000000",
   together: "https://cdn.simpleicons.org/together/000000",
   "hugging-face": "https://cdn.simpleicons.org/huggingface/FFD21E",
 };
