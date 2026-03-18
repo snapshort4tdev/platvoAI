@@ -53,14 +53,25 @@ const SignUpForm = () => {
         name: values.name,
         email: values.email,
         password: values.password,
-        callbackURL: "/home",
+        callbackURL: "/auth/verify-email",
       },
       {
         onRequest: () => {
           setIsLoading(true);
         },
-        onSuccess: () => {
-          router.replace("/home");
+        onSuccess: async () => {
+          try {
+            await fetch("/api/otp/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: values.email }),
+            });
+          } catch {
+            // Even if the send fails, continue to the verify page
+          }
+          router.replace(
+            `/auth/verify-email?email=${encodeURIComponent(values.email)}`
+          );
           setIsLoading(false);
         },
         onError: (ctx) => {
