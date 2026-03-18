@@ -15,11 +15,18 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth.api.getSession({
-    headers: await headers(), // you need to pass the headers object.
+    headers: await headers(),
   });
 
   if (!session) {
     return redirect("/auth/sign-in");
+  }
+
+  // If user hasn't verified their email, send them to the verify page
+  if (!session.user.emailVerified) {
+    return redirect(
+      `/auth/verify-email?email=${encodeURIComponent(session.user.email)}`
+    );
   }
 
   return (

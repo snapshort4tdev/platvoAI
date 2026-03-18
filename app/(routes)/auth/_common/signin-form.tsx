@@ -53,18 +53,36 @@ const SignInForm = () => {
       {
         email: values.email,
         password: values.password,
-        callbackURL: "/home",
       },
       {
         onRequest: () => {
           setIsLoading(true);
         },
-        onSuccess: (ctx) => {
+        onSuccess: async (ctx) => {
           const token = ctx.response.headers.get("set-auth-token");
           if (token) {
             setBearerToken(token);
           }
-          router.replace("/home");
+
+          // Check if user email is verified
+          const { data: session } = await authClient.getSession();
+          if (session && !session.user.emailVerified) {
+            // Send OTP and redirect to verify page
+            try {
+              await fetch("/api/otp/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: values.email }),
+              });
+            } catch {
+              // Continue even if send fails
+            }
+            router.replace(
+              `/auth/verify-email?email=${encodeURIComponent(values.email)}`
+            );
+          } else {
+            router.replace("/home");
+          }
           setIsLoading(false);
         },
         onError: (ctx) => {
