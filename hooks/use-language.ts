@@ -16,23 +16,26 @@ export function useLanguage() {
   const { data: languageData, isLoading } = useQuery({
     queryKey: ["user-language"],
     queryFn: async () => {
+      // First, check localStorage so we skip the API call for unauthenticated users
+      const stored = typeof window !== "undefined" ? localStorage.getItem("language") : null;
+      if (stored === "en" || stored === "ar") {
+        return stored as Language;
+      }
+
+      // Only hit the server if no local preference exists (i.e., returning authenticated user)
       try {
         const response = await fetch("/api/user/language");
         if (!response.ok) {
-          // If not authenticated, use localStorage or default to "en"
-          const stored = typeof window !== "undefined" ? localStorage.getItem("language") : null;
-          return (stored as Language) || "en";
+          return "en" as Language;
         }
         const data = await response.json();
         return data.language as Language;
-      } catch (error) {
-        // Fallback to localStorage or default
-        const stored = typeof window !== "undefined" ? localStorage.getItem("language") : null;
-        return (stored as Language) || "en";
+      } catch {
+        return "en" as Language;
       }
     },
-    staleTime: Infinity, // Language doesn't change often
-    retry: 1,
+    staleTime: Infinity,
+    retry: 0, // Don't retry auth errors
   });
 
   // Update language preference
