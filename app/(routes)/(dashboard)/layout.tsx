@@ -30,23 +30,25 @@ export default async function DashboardLayout({
   }
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center h-screen">
-          <RiLoader5Fill className="w-16 h-16 animate-spin text-primary" />
-        </div>
-      }
-    >
-      <NuqsAdapter>
-        <SidebarProvider>
-          {/* {App Sidebar} */}
-          <AppSidebar />
-          <SidebarInset className="relative overflow-x-hidden pt-0">
-            <MainContent>{children}</MainContent>
-            <NoteDialog />
-          </SidebarInset>
-        </SidebarProvider>
-      </NuqsAdapter>
-    </Suspense>
+    <div dir="ltr" className="h-[100dvh] w-full">
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center h-full">
+            <RiLoader5Fill className="w-16 h-16 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <NuqsAdapter>
+          <SidebarProvider>
+            {/* {App Sidebar} */}
+            <AppSidebar />
+            <SidebarInset className="relative overflow-x-hidden pt-0 h-full">
+              <MainContent>{children}</MainContent>
+              <NoteDialog />
+            </SidebarInset>
+          </SidebarProvider>
+        </NuqsAdapter>
+      </Suspense>
+    </div>
   );
 }
