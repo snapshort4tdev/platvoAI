@@ -43,29 +43,12 @@ services:
       - IMAGEKIT_URL_ENDPOINT=${IMAGEKIT_URL_ENDPOINT}
       - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
       - TAVILY_API_KEY=${TAVILY_API_KEY}
-      - SMTP_HOST=smtp
-      - SMTP_PORT=25
-      - SMTP_SECURE=false
-      - SMTP_FROM=noreply@platvo.com
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM=${RESEND_FROM}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-      smtp:
-        condition: service_started
-
-  smtp:
-    image: boky/postfix
-    environment:
-      - ALLOWED_SENDER_DOMAINS=platvo.com
-      - POSTFIX_myhostname=mail.platvo.com
-      - POSTFIX_myorigin=platvo.com
-      - POSTFIX_smtp_tls_security_level=may
-      - POSTFIX_smtpd_tls_security_level=none
-      - POSTFIX_inet_protocols=ipv4
-    volumes:
-      - /etc/opendkim/keys/platvo.com/mail.private:/etc/opendkim/mail.private:ro
-    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
