@@ -67,10 +67,19 @@ export async function sendOtpEmail(to: string, otp: string, name?: string) {
 </html>
   `.trim();
 
-  await resend.emails.send({
+  console.log(`[EMAIL] Sending OTP to ${to} via Resend from "${from}"`);
+
+  const { data, error } = await resend.emails.send({
     from,
     to,
     subject: `${otp} is your Platvo verification code`,
     html,
   });
+
+  if (error) {
+    console.error("[EMAIL] Resend error:", JSON.stringify(error));
+    throw new Error(`Resend failed: ${error.message}`);
+  }
+
+  console.log("[EMAIL] Sent successfully. ID:", data?.id);
 }
