@@ -29,6 +29,7 @@ import { useLocalChat } from "@/hooks/use-localchat";
 import { ArrowUpIcon, XIcon, Search, LucideFilePlus, ImageIcon, LockIcon } from "lucide-react";
 import { AVAILABLE_TOOLS, AvailableToolType, SearchMode } from "@/lib/ai/tools/constant";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import { RiSquareFill } from "@remixicon/react";
 import { toast } from "sonner";
 import useViewState from "@/hooks/use-view-state";
@@ -445,9 +446,18 @@ function ModelSelector({
                 key={model.value}
                 value={model.value}
                 aria-disabled={isLocked}
+                onSelect={(event) => {
+                  if (!isLocked) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  onSelect(model.value);
+                }}
                 className={cn(
-                  "flex items-center gap-2 pr-14",
-                  isLocked && "cursor-not-allowed text-muted-foreground opacity-75"
+                  "flex items-center gap-2 pr-12",
+                  isLocked &&
+                    "cursor-pointer bg-muted/40 text-muted-foreground focus:bg-primary/10 focus:text-foreground"
                 )}
               >
                 <ModelIcon
@@ -455,13 +465,16 @@ function ModelSelector({
                   size={16}
                   alt={`${model.label} icon`}
                 />
-                <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <span className="truncate">{model.label}</span>
+                <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                  <span className="min-w-0 flex-1 truncate">{model.label}</span>
                   {isLocked && (
-                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-medium uppercase text-primary">
-                      <LockIcon size={11} />
+                    <Badge
+                      variant="outline"
+                      className="ml-auto border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold uppercase text-primary"
+                    >
+                      <LockIcon className="size-3" />
                       Pro
-                    </span>
+                    </Badge>
                   )}
                 </span>
               </PromptInputModelSelectItem>
