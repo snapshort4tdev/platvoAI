@@ -45,8 +45,13 @@ import {
   type PlanAccessPlan,
 } from "@/lib/subscription/plan-access";
 
-const MAX_CHAT_FILES = 5;
-const MAX_CHAT_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_CHAT_FILES = 3;
+const MAX_CHAT_FILE_SIZE = 600 * 1024;
+const MAX_CHAT_TOTAL_FILE_SIZE = 600 * 1024;
+const MAX_CHAT_FILE_SIZE_KB = Math.floor(MAX_CHAT_FILE_SIZE / 1024);
+const MAX_CHAT_TOTAL_FILE_SIZE_KB = Math.floor(
+  MAX_CHAT_TOTAL_FILE_SIZE / 1024
+);
 const CHAT_FILE_ACCEPT =
   "image/*,.pdf,.txt,.md,.csv,.json,text/*,application/pdf,application/json,text/csv";
 
@@ -276,8 +281,23 @@ const ChatInput: FC<Props> = ({
       )}
       maxFiles={MAX_CHAT_FILES}
       maxFileSize={MAX_CHAT_FILE_SIZE}
+      maxTotalFileSize={MAX_CHAT_TOTAL_FILE_SIZE}
       multiple
-      onError={(error) => toast.error(error.message)}
+      onError={(error) => {
+        if (error.code === "max_file_size") {
+          toast.error(
+            `Uploads are limited to ${MAX_CHAT_FILE_SIZE_KB} KB per file and ${MAX_CHAT_TOTAL_FILE_SIZE_KB} KB total per message.`
+          );
+          return;
+        }
+
+        if (error.code === "max_files") {
+          toast.error(`You can attach up to ${MAX_CHAT_FILES} files.`);
+          return;
+        }
+
+        toast.error(error.message);
+      }}
       onSubmit={handleFormSubmit}
     >
       <div className="relative">

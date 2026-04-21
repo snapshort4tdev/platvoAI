@@ -58,7 +58,7 @@ type AttachmentsContext = {
 
 const AttachmentsContext = createContext<AttachmentsContext | null>(null);
 
-type PromptInputAttachmentItem = FileUIPart & { id: string };
+type PromptInputAttachmentItem = FileUIPart & { id: string; size?: number };
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -141,7 +141,7 @@ export type PromptInputAttachmentsProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   "children"
 > & {
-  children: (attachment: FileUIPart & { id: string }) => React.ReactNode;
+  children: (attachment: PromptInputAttachmentItem) => React.ReactNode;
 };
 
 export function PromptInputAttachments({
@@ -228,6 +228,7 @@ export type PromptInputProps = Omit<
   // Minimal constraints
   maxFiles?: number;
   maxFileSize?: number; // bytes
+  maxTotalFileSize?: number; // bytes
   onError?: (err: {
     code: "max_files" | "max_file_size" | "accept";
     message: string;
@@ -246,6 +247,7 @@ export const PromptInput = ({
   syncHiddenInput,
   maxFiles,
   maxFileSize,
+  maxTotalFileSize,
   onError,
   onSubmit,
   ...props
@@ -317,15 +319,47 @@ export const PromptInput = ({
         });
         return;
       }
+      const totalSized =
+        typeof maxTotalFileSize === "number"
+          ? (() => {
+              let totalSize = items.reduce(
+                (sum, item) => sum + (item.size ?? 0),
+                0
+              );
+
+              return sized.filter((file) => {
+                if (totalSize + file.size > maxTotalFileSize) {
+                  return false;
+                }
+
+                totalSize += file.size;
+                return true;
+              });
+            })()
+          : sized;
+      if (totalSized.length === 0 && sized.length > 0) {
+        onError?.({
+          code: "max_file_size",
+          message: "Files exceed the maximum total size.",
+        });
+        return;
+      }
+      if (totalSized.length < sized.length) {
+        onError?.({
+          code: "max_file_size",
+          message: "Some files were not added because they exceed the limit.",
+        });
+      }
       void (async () => {
         try {
           const next = await Promise.all(
-            sized.map(async (file) => ({
+            totalSized.map(async (file) => ({
               id: nanoid(),
               type: "file" as const,
               url: await readFileAsDataUrl(file),
               mediaType: file.type || "application/octet-stream",
               filename: file.name,
+              size: file.size,
             }))
           );
 
@@ -352,7 +386,7 @@ export const PromptInput = ({
         }
       })();
     },
-    [matchesAccept, maxFiles, maxFileSize, onError]
+    [items, matchesAccept, maxFiles, maxFileSize, maxTotalFileSize, onError]
   );
 
   const remove = useCallback((id: string) => {
@@ -438,8 +472,11 @@ export const PromptInput = ({
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
 
-    const files: FileUIPart[] = items.map(({ ...item }) => ({
-      ...item,
+    const files: FileUIPart[] = items.map((item) => ({
+      type: item.type,
+      url: item.url,
+      mediaType: item.mediaType,
+      filename: item.filename,
     }));
 
     const shouldClear = onSubmit(
