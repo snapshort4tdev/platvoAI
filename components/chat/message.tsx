@@ -8,6 +8,7 @@ import { ToolTypeEnum } from "@/lib/ai/tools/constant";
 import ToolCall from "./tool-call";
 import MessageAction from "./message-action";
 import { getTextDirection } from "@/lib/utils/language-detection";
+import { PaperclipIcon } from "lucide-react";
 
 interface Props {
   message: UIMessage;
@@ -72,6 +73,42 @@ const PreviewMessage = React.memo(({ message, isLoading }: Props) => {
                 >
                   {textContent}
                 </Response>
+              );
+            }
+
+            case "file": {
+              const fileName = part.filename || "Attachment";
+
+              if (part.mediaType?.startsWith("image/")) {
+                return (
+                  <div
+                    key={`${message.id}-${i}`}
+                    className="mt-2 overflow-hidden rounded-lg border bg-background"
+                  >
+                    <img
+                      alt={fileName}
+                      className="max-h-64 w-full object-contain"
+                      src={part.url}
+                    />
+                    <div className="truncate border-t px-2 py-1 text-xs text-muted-foreground">
+                      {fileName}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <a
+                  key={`${message.id}-${i}`}
+                  className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-xs text-foreground hover:bg-accent"
+                  download={fileName}
+                  href={part.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <PaperclipIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{fileName}</span>
+                </a>
               );
             }
 

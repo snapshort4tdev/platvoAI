@@ -48,7 +48,7 @@ import {
 } from "react";
 
 type AttachmentsContext = {
-  files: (FileUIPart & { id: string })[];
+  files: PromptInputAttachmentItem[];
   add: (files: File[] | FileList) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -57,6 +57,27 @@ type AttachmentsContext = {
 };
 
 const AttachmentsContext = createContext<AttachmentsContext | null>(null);
+
+type PromptInputAttachmentItem = FileUIPart & { id: string };
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Unable to read file."));
+    };
+    reader.onerror = () => {
+      reject(reader.error ?? new Error("Unable to read file."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export const usePromptInputAttachments = () => {
   const context = useContext(AttachmentsContext);
@@ -71,7 +92,7 @@ export const usePromptInputAttachments = () => {
 };
 
 export type PromptInputAttachmentProps = HTMLAttributes<HTMLDivElement> & {
-  data: FileUIPart & { id: string };
+  data: PromptInputAttachmentItem;
   className?: string;
 };
 
@@ -86,6 +107,7 @@ export function PromptInputAttachment({
     <div
       className={cn("group relative h-14 w-14 rounded-md border", className)}
       key={data.id}
+      title={data.filename}
       {...props}
     >
       {data.mediaType?.startsWith("image/") && data.url ? (
@@ -195,7 +217,7 @@ export type PromptInputMessage = {
 
 export type PromptInputProps = Omit<
   HTMLAttributes<HTMLFormElement>,
-  "onSubmit"
+  "onError" | "onSubmit"
 > & {
   accept?: string; // e.g., "image/*" or leave undefined for any
   multiple?: boolean;
@@ -213,7 +235,7 @@ export type PromptInputProps = Omit<
   onSubmit: (
     message: PromptInputMessage,
     event: FormEvent<HTMLFormElement>
-  ) => void;
+  ) => boolean | void;
 };
 
 export const PromptInput = ({
@@ -228,7 +250,7 @@ export const PromptInput = ({
   onSubmit,
   ...props
 }: PromptInputProps) => {
-  const [items, setItems] = useState<(FileUIPart & { id: string })[]>([]);
+  const [items, setItems] = useState<PromptInputAttachmentItem[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const anchorRef = useRef<HTMLSpanElement>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -280,54 +302,52 @@ export const PromptInput = ({
         });
         return;
       }
-      setItems((prev) => {
-        const capacity =
-          typeof maxFiles === "number"
-            ? Math.max(0, maxFiles - prev.length)
-            : undefined;
-        const capped =
-          typeof capacity === "number" ? sized.slice(0, capacity) : sized;
-        if (typeof capacity === "number" && sized.length > capacity) {
+      void (async () => {
+        try {
+          const next = await Promise.all(
+            sized.map(async (file) => ({
+              id: nanoid(),
+              type: "file" as const,
+              url: await readFileAsDataUrl(file),
+              mediaType: file.type || "application/octet-stream",
+              filename: file.name,
+            }))
+          );
+
+          setItems((prev) => {
+            const capacity =
+              typeof maxFiles === "number"
+                ? Math.max(0, maxFiles - prev.length)
+                : undefined;
+            const capped =
+              typeof capacity === "number" ? next.slice(0, capacity) : next;
+            if (typeof capacity === "number" && next.length > capacity) {
+              onError?.({
+                code: "max_files",
+                message: "Too many files. Some were not added.",
+              });
+            }
+            return prev.concat(capped);
+          });
+        } catch {
           onError?.({
-            code: "max_files",
-            message: "Too many files. Some were not added.",
+            code: "accept",
+            message: "Unable to read one or more files.",
           });
         }
-        const next: (FileUIPart & { id: string })[] = [];
-        for (const file of capped) {
-          next.push({
-            id: nanoid(),
-            type: "file",
-            url: URL.createObjectURL(file),
-            mediaType: file.type,
-            filename: file.name,
-          });
-        }
-        return prev.concat(next);
-      });
+      })();
     },
     [matchesAccept, maxFiles, maxFileSize, onError]
   );
 
   const remove = useCallback((id: string) => {
     setItems((prev) => {
-      const found = prev.find((file) => file.id === id);
-      if (found?.url) {
-        URL.revokeObjectURL(found.url);
-      }
       return prev.filter((file) => file.id !== id);
     });
   }, []);
 
   const clear = useCallback(() => {
-    setItems((prev) => {
-      for (const file of prev) {
-        if (file.url) {
-          URL.revokeObjectURL(file.url);
-        }
-      }
-      return [];
-    });
+    setItems([]);
   }, []);
 
   // Note: File input cannot be programmatically set for security reasons
@@ -396,6 +416,7 @@ export const PromptInput = ({
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     if (event.currentTarget.files) {
       add(event.currentTarget.files);
+      event.currentTarget.value = "";
     }
   };
 
@@ -406,7 +427,14 @@ export const PromptInput = ({
       ...item,
     }));
 
-    onSubmit({ text: event.currentTarget.message.value, files }, event);
+    const shouldClear = onSubmit(
+      { text: event.currentTarget.message.value, files },
+      event
+    );
+
+    if (shouldClear !== false) {
+      clear();
+    }
   };
 
   const ctx = useMemo<AttachmentsContext>(

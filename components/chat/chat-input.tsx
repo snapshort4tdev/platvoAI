@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { UseChatHelpers } from "@ai-sdk/react";
-import { ChatStatus, UIMessage } from "ai";
+import { ChatStatus, FileUIPart, UIMessage } from "ai";
 import React, {
   Dispatch,
   FC,
@@ -11,6 +11,8 @@ import React, {
 } from "react";
 import {
   PromptInput,
+  PromptInputAttachment,
+  PromptInputAttachments,
   PromptInputButton,
   PromptInputModelSelect,
   PromptInputModelSelectContent,
@@ -21,12 +23,13 @@ import {
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputTools,
+  usePromptInputAttachments,
 } from "../ai-elements/prompt-input";
 import { cn } from "@/lib/utils";
 import { MODEL_OPTIONS, chatModels } from "@/lib/ai/models";
 import { ModelIcon } from "./model-icon";
 import { useLocalChat } from "@/hooks/use-localchat";
-import { ArrowUpIcon, XIcon, Search, LucideFilePlus, ImageIcon, LockIcon } from "lucide-react";
+import { ArrowUpIcon, XIcon, Search, LucideFilePlus, ImageIcon, LockIcon, PaperclipIcon } from "lucide-react";
 import { AVAILABLE_TOOLS, AvailableToolType, SearchMode } from "@/lib/ai/tools/constant";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -41,6 +44,11 @@ import {
   isModelLockedForPlan,
   type PlanAccessPlan,
 } from "@/lib/subscription/plan-access";
+
+const MAX_CHAT_FILES = 5;
+const MAX_CHAT_FILE_SIZE = 5 * 1024 * 1024;
+const CHAT_FILE_ACCEPT =
+  "image/*,.pdf,.txt,.md,.csv,.json,text/*,application/pdf,application/json,text/csv";
 
 type Props = {
   chatId: string;
@@ -160,17 +168,24 @@ const ChatInput: FC<Props> = ({
     toast.info(t("messages.generationStopped"));
   };
 
-  const handleFormSubmit = useCallback(({ text = "" }: { text?: string }) => {
+  const handleFormSubmit = useCallback(({
+    text = "",
+    files = [],
+  }: {
+    text?: string;
+    files?: FileUIPart[];
+  }) => {
     // Generation limit check removed - unlimited for now
-    if (disabled) return;
-    if (!text?.trim()) {
+    if (disabled) return false;
+    const attachedFiles = files.filter((file) => file.url && file.mediaType);
+    if (!text?.trim() && attachedFiles.length === 0) {
       toast.error(t("messages.pleaseTypeMessage"));
-      return;
+      return false;
     }
 
     if (!chatId) {
       toast.error(t("messages.chatIdNotFound"));
-      return;
+      return false;
     }
 
     window.history.replaceState({}, "", `/chat/${chatId}`);
@@ -178,7 +193,7 @@ const ChatInput: FC<Props> = ({
 
     if (status === "streaming") {
       toast.error(t("messages.waitForResponse"));
-      return;
+      return false;
     }
 
     const selectedModel = chatModels.find((m) => m.id === selectedModelId);
@@ -188,12 +203,12 @@ const ChatInput: FC<Props> = ({
       isModelLockedForPlan(subscriptionPlan, selectedModel)
     ) {
       showUpgradeToast();
-      return;
+      return false;
     }
 
-    // Build message parts - only text
+    // Build message parts
     const parts: any[] = [];
-    
+
     // Add text part
     if (text?.trim()) {
       parts.push({
@@ -201,6 +216,15 @@ const ChatInput: FC<Props> = ({
         text: text.trim(),
       });
     }
+
+    attachedFiles.forEach((file) => {
+      parts.push({
+        type: "file",
+        url: file.url,
+        mediaType: file.mediaType,
+        filename: file.filename,
+      });
+    });
 
     // Determine selected tool name based on search mode
     let toolName: string | null = selectedTool?.name || null;
@@ -223,6 +247,7 @@ const ChatInput: FC<Props> = ({
       }
     );
     setInput("");
+    return true;
   }, [
     chatId,
     status,
@@ -244,10 +269,15 @@ const ChatInput: FC<Props> = ({
   const placeholder = t("chat.placeholder");
   return (
     <PromptInput
+      accept={CHAT_FILE_ACCEPT}
       className={cn(
         `relative bg-white dark:bg-[#242628] ring-border shadow-md dark:shadow-black/5 !rounded-2xl sm:!rounded-3xl !divide-y-0 pb-1.5 sm:pb-2 transition-colors`,
         className && className
       )}
+      maxFiles={MAX_CHAT_FILES}
+      maxFileSize={MAX_CHAT_FILE_SIZE}
+      multiple
+      onError={(error) => toast.error(error.message)}
       onSubmit={handleFormSubmit}
     >
       <div className="relative">
@@ -292,10 +322,20 @@ const ChatInput: FC<Props> = ({
           )}
           onChange={handleInput}
         />
+        <PromptInputAttachments className="px-2 sm:px-3 pb-2">
+          {(attachment) => (
+            <PromptInputAttachment
+              data={attachment}
+              className="bg-background shadow-xs"
+            />
+          )}
+        </PromptInputAttachments>
       </div>
 
       <PromptInputToolbar>
         <PromptInputTools className="flex-wrap gap-1 sm:gap-1.5">
+          <AttachmentButton disabled={disabled || isGenerating} />
+
           <ModelSelector
             selectedModelId={selectedModelId}
             onSelect={handleSelect}
@@ -380,18 +420,57 @@ const ChatInput: FC<Props> = ({
         {isGenerating ? (
           <StopButton stop={handleStop} />
         ) : (
-          <PromptInputSubmit
+          <ChatSubmitButton
+            disabled={disabled}
+            input={input}
             status={status}
-            disabled={!input.trim() || disabled}
-            className="absolute right-1.5 sm:right-2 rounded-full bottom-1 sm:bottom-1.5 !text-white"
-          >
-            <ArrowUpIcon size={20} className="sm:w-6 sm:h-6" />
-          </PromptInputSubmit>
+          />
         )}
       </PromptInputToolbar>
     </PromptInput>
   );
 };
+
+function AttachmentButton({ disabled }: { disabled?: boolean }) {
+  const attachments = usePromptInputAttachments();
+
+  return (
+    <PromptInputButton
+      className="text-muted-foreground"
+      disabled={disabled}
+      onClick={attachments.openFileDialog}
+      size="sm"
+      title="Attach files"
+      type="button"
+      variant="outline"
+    >
+      <PaperclipIcon size={14} className="sm:w-4 sm:h-4" />
+    </PromptInputButton>
+  );
+}
+
+function ChatSubmitButton({
+  disabled,
+  input,
+  status,
+}: {
+  disabled?: boolean;
+  input: string;
+  status: ChatStatus;
+}) {
+  const attachments = usePromptInputAttachments();
+  const hasMessageContent = input.trim().length > 0 || attachments.files.length > 0;
+
+  return (
+    <PromptInputSubmit
+      status={status}
+      disabled={!hasMessageContent || disabled}
+      className="absolute right-1.5 sm:right-2 rounded-full bottom-1 sm:bottom-1.5 !text-white"
+    >
+      <ArrowUpIcon size={20} className="sm:w-6 sm:h-6" />
+    </PromptInputSubmit>
+  );
+}
 
 function ModelSelector({
   selectedModelId,
